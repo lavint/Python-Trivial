@@ -23,7 +23,7 @@ Continent = Base.classes.continent
 # Use jsonify library to create an HTTP response with the dictionary to send back to the client
 # Flask 1.1.0 +  automatically convert a dictionary to JSON
 # Endpoint starts with /api to indicate to consumers that the response will contain data
-
+# Add trailing / in route to avoid 404 error when accessing with / and parameter as in country and country_spec below
 
 # Define a function that describe the server's response when a user hits the index route
 @app.route("/")
@@ -33,16 +33,24 @@ def index():
     print('Server received request for Home page')
     
     # Client receives request handler (function)'s return value
-    return 'Welcome to the app!!'
+    return ('Welcome to the app!!<br>'
+            'Available routes:</br>'
+            '/about<br>'
+            '/api/v1.0/continent<br>'
+            '/api/v1.0/country<br>'
+            '/api/v1.0/country/Insert_Country_Name_Here'
+    )
 
 
-@app.route("/about")
+
+@app.route("/about/")
 def about():
     print('Server received request for About Page')
     return 'Learn about about us :)!'
 
 
-@app.route("/api/v1.0/continent")
+# Pull data using session
+@app.route("/api/v1.0/continent/")
 def continent(): 
     session = Session(engine)   
     all_continents = session.query(Continent.name).all()
@@ -52,8 +60,8 @@ def continent():
     return jsonify(list(np.ravel(all_continents)))
         
 
-
-@app.route("/api/v1.0/country")
+# Pull data using engine.execute
+@app.route("/api/v1.0/country/")
 def country():
     all_countries = []
     for index, country, capital in engine.execute("SELECT * FROM COUNTRY"):
@@ -64,6 +72,19 @@ def country():
         
     # Convert a list to json and return result
     return jsonify(all_countries)
+
+
+
+# Search for specific country in the URL
+# Canonicalization is a process for converting data that has more than one possible representation into a standard form
+@app.route("/api/v1.0/country/<country>/") 
+def country_spec(country):
+    for index, cntry, capital in engine.execute("SELECT * FROM COUNTRY"):
+        if cntry.lower() == country.lower():
+            return jsonify({cntry: capital})     
+
+    # Return error message
+    return jsonify({'Error': f'Country {country} not found'}), 404
 
 
 
